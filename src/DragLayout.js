@@ -16,23 +16,48 @@ export default class DragLayout extends PureComponent {
 
   constructor(props) {
     super(props);
-
+    this.getFromLS()
     this.state = {
-      layouts: this.getFromLS("layouts") || {},
+      layouts: {},
       widgets:[]
     }
   }
 
-  getFromLS(key) {
-    let ls = {};
-    if (global.localStorage) {
-      try {
-        ls = JSON.parse(global.localStorage.getItem("rgl-8")) || {};
-      } catch (e) {
-        /*Ignore*/
-      }
-    }
-    return ls[key];
+  getFromLS() {
+    new Promise(()=>{
+      setTimeout(()=>{
+        // 第一步：模拟网络请求获取layouts
+        let layouts={
+          "lg":[
+            {"w":3,"h":2,"x":0,"y":0,"i":"1622283565113","moved":false,"static":false},
+            {"w":3,"h":2,"x":3,"y":0,"i":"1622282842009","moved":false,"static":false},
+            {"w":6,"h":2,"x":0,"y":2,"i":"1622282840229","moved":false,"static":false}
+            
+          ],"md":[],"sm":[{"w":3,"h":2,"x":0,"y":0,"i":"1622282840229","moved":false,"static":false},{"w":3,"h":2,"x":3,"y":0,"i":"1622282842009","moved":false,"static":false}],"xs":[{"w":3,"h":2,"x":0,"y":0,"i":"1622277396501","moved":false,"static":false}]}
+        this.setState({
+          layouts,
+          widgets:layouts.lg
+        })
+        // 第二步：模拟网络请求获取layouts里的图表
+        const arr=['bar','line','pie']
+        // 模拟发送请求获取图表数据
+        this.state.widgets.forEach((item,index)=>{
+          setTimeout(()=>{
+            // 模拟获取到图表数据重新赋值widgets
+            let widgetsCopy = JSON.parse(JSON.stringify(this.state.widgets))
+            widgetsCopy[index].type=arr[index%3]
+            console.log('widgetsCopy')
+            console.log(widgetsCopy)
+            this.setState({
+              widgets:widgetsCopy
+            })
+          },(3-index)*1000)
+
+        })
+
+      },1000)
+    })
+    
   }
 
   saveToLS(key, value) {
@@ -46,6 +71,9 @@ export default class DragLayout extends PureComponent {
     }
   }
   generateDOM = () => {
+    console.log('this.state.layouts')
+    console.log(this.state.layouts)
+    console.log(JSON.stringify(this.state.layouts))
     return _.map(this.state.widgets, (l, i) => {
       let option;
       if (l.type === 'bar') {
@@ -55,14 +83,20 @@ export default class DragLayout extends PureComponent {
       }else if (l.type === 'pie') {
         option = getPieChart();
       }
-      let component = (
-        <ReactEcharts
-          option={option}
-          notMerge={true}
-          lazyUpdate={true}
-          style={{width: '100%',height:'100%'}}
-        />
-      )
+      let component
+      if(l.type){
+        component= (
+          <ReactEcharts
+            option={option}
+            notMerge={true}
+            lazyUpdate={true}
+            style={{width: '100%',height:'100%'}}
+          />
+        )
+      }else{
+        component=<div>loading...</div>
+      }
+      
       return (
         <div key={l.i} data-grid={l}>
           <span className='remove' onClick={this.onRemoveItem.bind(this, i)}>x</span>
